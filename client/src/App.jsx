@@ -1,61 +1,37 @@
-﻿import { useEffect, useState } from 'react'
-import { Search, Film } from 'lucide-react'
-import { searchMovies, getPopular } from './services/api'
-import MovieCard from './components/MovieCard'
+﻿import { BrowserRouter, Routes, Route, Link, NavLink } from 'react-router-dom'
+import { Film, Bookmark } from 'lucide-react'
+import { useWatchlist } from './hooks/useWatchlist'
+import Home from './pages/Home'
+import MovieDetails from './pages/MovieDetails'
+import Watchlist from './pages/Watchlist'
 
 export default function App() {
-  const [q, setQ] = useState('')
-  const [movies, setMovies] = useState([])
-  const [status, setStatus] = useState('loading')
-
-  useEffect(() => {
-    let cancelled = false
-    const timer = setTimeout(() => {
-      setStatus('loading')
-      const term = q.trim()
-      const req = term ? searchMovies(term) : getPopular()
-      req
-        .then((d) => {
-          if (cancelled) return
-          setMovies(d.results)
-          setStatus('done')
-        })
-        .catch(() => !cancelled && setStatus('error'))
-    }, 400)
-    return () => {
-      cancelled = true
-      clearTimeout(timer)
-    }
-  }, [q])
+  const wl = useWatchlist()
 
   return (
-    <main className="mx-auto max-w-6xl p-4 md:p-6">
-      <header className="mb-6 flex items-center gap-3">
-        <Film className="text-orange-400" />
-        <h1 className="text-2xl font-bold">Movie Finder</h1>
-      </header>
+    <BrowserRouter>
+      <main className="mx-auto max-w-6xl p-4 md:p-6">
+        <header className="mb-6 flex items-center justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <Film className="text-orange-400" />
+            <h1 className="text-2xl font-bold">Movie Finder</h1>
+          </Link>
+          <NavLink
+            to="/watchlist"
+            className={({ isActive }) =>
+              `flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm ${isActive ? 'bg-orange-500' : 'bg-white/5 hover:bg-white/10'}`
+            }
+          >
+            <Bookmark size={16} /> Watchlist ({wl.items.length})
+          </NavLink>
+        </header>
 
-      <div className="mb-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-        <Search size={18} className="opacity-60" />
-        <input
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          placeholder="Search movies..."
-          className="w-full bg-transparent outline-none"
-        />
-      </div>
-
-      <h2 className="mb-3 text-sm opacity-60">{q.trim() ? `Results for "${q.trim()}"` : 'Popular right now'}</h2>
-
-      {status === 'error' && <p className="text-red-300">Could not load movies. Is the server running?</p>}
-      {status === 'loading' && <p className="opacity-60">Loading...</p>}
-      {status === 'done' && movies.length === 0 && <p className="opacity-60">No movies found.</p>}
-
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {movies.map((m) => (
-          <MovieCard key={m.id} movie={m} />
-        ))}
-      </div>
-    </main>
+        <Routes>
+          <Route path="/" element={<Home wl={wl} />} />
+          <Route path="/movie/:id" element={<MovieDetails wl={wl} />} />
+          <Route path="/watchlist" element={<Watchlist wl={wl} />} />
+        </Routes>
+      </main>
+    </BrowserRouter>
   )
 }
